@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30320.27
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaMerge", "LuaMerge\LuaMerge.csproj", "{9E219A98-3A3B-4000-8310-A4544EAA2EC4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaMerge.Core", "LuaMerge.Core\LuaMerge.Core.csproj", "{FD2DF94D-8C82-4FC5-8A5B-E23B568C8C59}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9E219A98-3A3B-4000-8310-A4544EAA2EC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E219A98-3A3B-4000-8310-A4544EAA2EC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E219A98-3A3B-4000-8310-A4544EAA2EC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E219A98-3A3B-4000-8310-A4544EAA2EC4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD2DF94D-8C82-4FC5-8A5B-E23B568C8C59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD2DF94D-8C82-4FC5-8A5B-E23B568C8C59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD2DF94D-8C82-4FC5-8A5B-E23B568C8C59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD2DF94D-8C82-4FC5-8A5B-E23B568C8C59}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EBD6F7B3-19E9-42DD-93A7-132C6F424632}
+	EndGlobalSection
+EndGlobal
