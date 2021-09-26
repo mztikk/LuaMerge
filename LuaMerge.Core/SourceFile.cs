@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using RFReborn.Hashing;
@@ -29,7 +28,7 @@ namespace LuaMerge.Core
             string fileName = Path.GetFileNameWithoutExtension(filePath);
             return string.Create(fileName.Length, fileName, (span, value) =>
             {
-                var indices = new List<int>();
+                value.AsSpan().CopyTo(span);
                 for (int i = 0; i < value.Length; i++)
                 {
                     char c = value[i];
@@ -38,14 +37,7 @@ namespace LuaMerge.Core
                         continue;
                     }
 
-                    indices.Add(i);
-                }
-
-                value.AsSpan().CopyTo(span);
-
-                foreach (int index in indices)
-                {
-                    span[index] = '_';
+                    span[i] = '_';
                 }
             });
         }

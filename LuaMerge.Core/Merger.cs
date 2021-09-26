@@ -14,7 +14,6 @@ namespace LuaMerge.Core
 
         public string Merge(string input)
         {
-            //GatherDeps(input);
             var sourceNodeLookup = GatherDependencies(input).Distinct().ToDictionary(key => key.Name);
             var resolver = new Resolver();
             var resolved = resolver.Resolve(sourceNodeLookup[input]).ToList();
