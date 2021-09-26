@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -7,35 +6,40 @@ namespace LuaMerge.Core
 {
     public class Merger
     {
-        private readonly ConcurrentDictionary<string, Node> _s = new();
-        private readonly HashSet<string> _r = new();
+        // to avoid duplicate inserting if multiple files include same file
+        private readonly HashSet<string> _alreadyResolved = new();
+
+        // lookup from sourcefile paths to sourcecode
         private readonly Dictionary<string, string> _resolvedFiles = new();
 
         public string Merge(string input)
         {
-            GatherDeps(input);
-            var r = new Resolver();
-            var resolved = r.Resolve(_s[input]).ToList();
+            //GatherDeps(input);
+            var sourceNodeLookup = GatherDependencies(input).Distinct().ToDictionary(key => key.Name);
+            var resolver = new Resolver();
+            var resolved = resolver.Resolve(sourceNodeLookup[input]).ToList();
             foreach (string item in resolved)
             {
                 var sourceFile = new SourceFile(item);
                 string fileData = sourceFile.Code;
-                if (_s.TryGetValue(item, out Node deps))
+                if (sourceNodeLookup.TryGetValue(item, out Node deps))
                 {
-                    foreach (Node d in deps.Edges)
+                    foreach (Node dependency in deps.Edges)
                     {
-                        string findstr = $"{Constants.INCLUDE_STRING} {d.Name}";
-                        string replaceWith;
-                        if (_r.Contains(d.Name))
+                        string includeString = $"{Constants.INCLUDE_STRING} {dependency.Name}";
+
+                        string sourceToInsert;
+                        if (_alreadyResolved.Contains(dependency.Name))
                         {
-                            replaceWith = string.Empty;
+                            sourceToInsert = string.Empty;
                         }
                         else
                         {
-                            replaceWith = _resolvedFiles[d.Name];
-                            _r.Add(d.Name);
+                            sourceToInsert = _resolvedFiles[dependency.Name];
+                            _alreadyResolved.Add(dependency.Name);
                         }
-                        fileData = fileData.Replace(findstr, replaceWith);
+
+                        fileData = fileData.Replace(includeString, sourceToInsert);
                     }
 
                     _resolvedFiles[item] = fileData;
@@ -45,32 +49,37 @@ namespace LuaMerge.Core
             return _resolvedFiles[input];
         }
 
-        private void GatherDeps(string input)
+        private static IEnumerable<Node> GatherDependencies(string sourceFile)
         {
-            Node n = _s.GetOrAdd(input, new Node(input));
-
-            using var reader = new StreamReader(new FileStream(input, FileMode.Open, FileAccess.Read));
-            string line;
-            var deps = new HashSet<string>();
-            while ((line = reader.ReadLine()?.Trim()) is { })
+            static IEnumerable<string> GatherIncludes(string sourceFile)
             {
-                if (line.StartsWith(Constants.INCLUDE_STRING))
+                using var reader = new StreamReader(new FileStream(sourceFile, FileMode.Open, FileAccess.Read));
+                string line;
+                while ((line = reader.ReadLine()?.Trim()) is { })
                 {
-                    string includeFile = line.Substring(Constants.INCLUDE_STRING.Length).Trim();
-                    n.AddNode(_s.GetOrAdd(includeFile, new Node(includeFile)));
-                    deps.Add(includeFile);
+                    if (line.StartsWith(Constants.INCLUDE_STRING))
+                    {
+                        string includeFile = line.Substring(Constants.INCLUDE_STRING.Length).Trim();
+
+                        yield return includeFile;
+                    }
                 }
             }
 
-            foreach (string dep in deps)
-            {
-                //if (_r.Contains(dep))
-                //{
-                //    continue;
-                //}
+            var stack = new Stack<Node>();
+            stack.Push(new Node(sourceFile));
 
-                //_r.Add(dep);
-                GatherDeps(dep);
+            while (stack.Count > 0)
+            {
+                Node node = stack.Pop();
+                foreach (string includeFile in GatherIncludes(node.Name))
+                {
+                    var includeNode = new Node(includeFile);
+                    node.AddNode(includeNode);
+                    stack.Push(includeNode);
+                }
+
+                yield return node;
             }
         }
     }
