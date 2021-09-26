@@ -9,10 +9,12 @@ namespace LuaMerge.Core
     {
         private readonly string _rawFile;
         private readonly string _path;
+        private readonly string _alias;
 
-        public SourceFile(string path)
+        public SourceFile(string path, string? alias = null)
         {
             _path = path;
+            _alias = alias;
             _rawFile = File.ReadAllText(path);
             _convertedFile = new(ConvertToFunctionCall);
         }
@@ -21,7 +23,7 @@ namespace LuaMerge.Core
 
         public string Code => _convertedFile.Value;
 
-        private string ConvertToFunctionCall() => ConvertToFunctionCall(ConvertFilePathToFunctionName(_path), _rawFile);
+        private string ConvertToFunctionCall() => ConvertToFunctionCall(ConvertFilePathToFunctionName(_path), _rawFile, _alias);
 
         private static string ConvertFilePathToFunctionName(string filePath)
         {
@@ -42,7 +44,7 @@ namespace LuaMerge.Core
             });
         }
 
-        private static string ConvertToFunctionCall(string name, string rawText)
+        private static string ConvertToFunctionCall(string name, string rawText, string? alias = null)
         {
             string hash = HashFactory.Hash("SHA256", rawText);
             var builder = new StringBuilder();
@@ -53,11 +55,27 @@ namespace LuaMerge.Core
                 .Append(hash)
                 .AppendLine("()")
                 .AppendLine(rawText)
-                .AppendLine("end")
-                .Append(name)
-                .Append('_')
-                .Append(hash)
-                .AppendLine("()");
+                .AppendLine("end");
+
+            if (alias is null)
+            {
+                builder
+                    .Append(name)
+                    .Append('_')
+                    .Append(hash)
+                    .AppendLine("()");
+            }
+            else
+            {
+                builder
+                    .Append("local ")
+                    .Append(alias)
+                    .Append(" = ")
+                    .Append(name)
+                    .Append('_')
+                    .Append(hash)
+                    .AppendLine("()");
+            }
 
             return builder.ToString();
         }

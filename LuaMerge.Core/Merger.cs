@@ -14,31 +14,34 @@ namespace LuaMerge.Core
 
         public string Merge(string input)
         {
-            var sourceNodeLookup = GatherDependencies(input).Distinct().ToDictionary(key => key.Name);
+            var sourceNodeLookup = GatherDependencies(input).Distinct().ToDictionary(key => key.Path);
             var resolver = new Resolver();
             var resolved = resolver.Resolve(sourceNodeLookup[input]).ToList();
             foreach (string item in resolved)
             {
-                var sourceFile = new SourceFile(item);
+                Node node = sourceNodeLookup[item];
+                var sourceFile = new SourceFile(item, node.Alias);
                 string fileData = sourceFile.Code;
                 if (sourceNodeLookup.TryGetValue(item, out Node deps))
                 {
                     foreach (Node dependency in deps.Edges)
                     {
-                        string includeString = $"{Constants.INCLUDE_STRING} {dependency.Name}";
-
+                        //string includeString = $"{Constants.INCLUDE_STRING} {dependency.Path}";
+                        int includePos = fileData.IndexOf(Constants.INCLUDE_STRING);
+                        int endPos = fileData.IndexOf(';', includePos);
                         string sourceToInsert;
-                        if (_alreadyResolved.Contains(dependency.Name))
+                        if (_alreadyResolved.Contains(dependency.Path))
                         {
                             sourceToInsert = string.Empty;
                         }
                         else
                         {
-                            sourceToInsert = _resolvedFiles[dependency.Name];
-                            _alreadyResolved.Add(dependency.Name);
+                            sourceToInsert = _resolvedFiles[dependency.Path];
+                            _alreadyResolved.Add(dependency.Path);
                         }
 
-                        fileData = fileData.Replace(includeString, sourceToInsert);
+                        fileData = fileData.Remove(includePos, endPos + 1 - includePos).Insert(includePos, sourceToInsert);
+                        //fileData = fileData.Replace(includeString, sourceToInsert);
                     }
 
                     _resolvedFiles[item] = fileData;
@@ -50,7 +53,7 @@ namespace LuaMerge.Core
 
         private static IEnumerable<Node> GatherDependencies(string sourceFile)
         {
-            static IEnumerable<string> GatherIncludes(string sourceFile)
+            static IEnumerable<Node> GatherIncludes(string sourceFile)
             {
                 using var reader = new StreamReader(new FileStream(sourceFile, FileMode.Open, FileAccess.Read));
                 string line;
@@ -58,9 +61,21 @@ namespace LuaMerge.Core
                 {
                     if (line.StartsWith(Constants.INCLUDE_STRING))
                     {
-                        string includeFile = line.Substring(Constants.INCLUDE_STRING.Length).Trim();
+                        //string includeFile = line.Substring(Constants.INCLUDE_STRING.Length).Trim();
+                        int pos1 = line.IndexOf('"', Constants.INCLUDE_STRING.Length);
+                        int pos2 = line.IndexOf('"', pos1 + 1);
+                        string includeFile = line[(pos1 + 1)..pos2];
+                        string rest = line[(pos1 + 1)..];
+                        int endPos = rest.IndexOf(';');
 
-                        yield return includeFile;
+                        string? alias = null;
+                        int aliasPos = rest.IndexOf(Constants.ALIAS);
+                        if (aliasPos != -1)
+                        {
+                            alias = rest[(aliasPos + Constants.ALIAS.Length)..endPos].Trim();
+                        }
+
+                        yield return new(includeFile, alias);
                     }
                 }
             }
@@ -71,9 +86,8 @@ namespace LuaMerge.Core
             while (stack.Count > 0)
             {
                 Node node = stack.Pop();
-                foreach (string includeFile in GatherIncludes(node.Name))
+                foreach (Node includeNode in GatherIncludes(node.Path))
                 {
-                    var includeNode = new Node(includeFile);
                     node.AddNode(includeNode);
                     stack.Push(includeNode);
                 }
